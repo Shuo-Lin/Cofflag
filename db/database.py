@@ -29,12 +29,20 @@ class flagDB(object):
         return result
 
     def createTable(self,tableName):
-        if tableName =='user':
+        if tableName =='chatgroup':
+            sqlCode='create table if not exists chatgroup(' +\
+                    'g_id smallint auto_increment primary key,' +\
+                    'name varchar(64),' +\
+                    'detail varchar(255)' +\
+                    ');'
+        elif tableName =='user':
             sqlCode='create table if not exists user(' +\
                     'u_id smallint auto_increment primary key,' +\
-                    'name varchar(15),' +\
+                    'name varchar(32),' +\
                     'gender varchar(6),' +\
-                    'school varchar(10)' +\
+                    'school varchar(10),' +\
+                    'chatgroup smallint,' +\
+                    'foreign key (chatgroup) references chatgroup(g_id)' +\
                     ');'
         elif tableName =='flag_type':
             sqlCode='create table if not exists flag_type(' +\
@@ -45,14 +53,14 @@ class flagDB(object):
         elif tableName =='position':
             sqlCode='create table if not exists postion(' +\
                     'p_id smallint auto_increment primary key,' +\
-                    'name varchar(15),' +\
+                    'name varchar(32),' +\
                     'location_x int,' +\
                     'location_y int' +\
                     ');'
         elif tableName =='flag':
             sqlCode='create table if not exists flag(' +\
                     'f_id smallint auto_increment primary key,' +\
-                    'name varchar(15),' +\
+                    'name varchar(32),' +\
                     'details varchar(255),' +\
                     'state smallint,' +\
                     'p_id smallint,' +\
@@ -78,6 +86,7 @@ class flagDB(object):
                     'foreign key (u1_id) references user(u_id),' +\
                     'foreign key (u2_id) references user(u_id)' +\
                     ');'
+
         else:
             print 'what do you want to do?'
             return 0
@@ -94,7 +103,41 @@ class flagDB(object):
     def closeConnection(self):
         res =self.dbConnection.close()
         return res
-        
+
+class chatgroupTable(flagDB):
+
+    def __init__(self):
+        flagDB.__init__(self)
+        self._tableName ='chatgroup'
+        print self._tableName+':Table init done'
+
+    def addGroup(self, name='NONE', detail='NONE'):
+        sqlCode ='INSERT INTO ' +self._tableName +' (name, detail) VALUES (\'' +\
+                 name +'\', \'' +detail+'\');'
+        res =self.executeSql(sqlCode, 'addGroup:'+name)
+        return res
+    
+    def updateGroup(self, name='NONE', detail='NONE'):
+        sqlCode ='UPDATE ' + self._tableName +' SET name=\'' +name +'\', ' +' descripton=\'' + detail+ '\' WHERE name=\'' +name +'\';' 
+        res =self.executeSql(sqlCode, 'updateGroup:'+name)
+        return res
+
+    def queryGroup(self, g_id=0):
+        if int(g_id):
+            sqlCode ='SELECT * FROM ' +self._tableName +' WHERE g_id=' +str(g_id) +';'
+        else:
+            sqlCode ='SELECT * FROM ' +self._tableName +';'
+        res =self.querySql(sqlCode, 'query:Group')
+        return res
+
+    def deleteGroup(self, g_id):
+        if int(g_id):
+            sqlCode ='DELETE FROM ' +self._tableName +' WHERE g_id=' +str(g_id) +';'
+        else:
+            sqlCode ='DELETE FROM ' +self._tableName+';'
+        res =self.executeSql(sqlCode, 'query:Group')
+        return res
+
 class userTable(flagDB):
 
     def __init__(self):
@@ -110,15 +153,15 @@ class userTable(flagDB):
         res =self.executeSql(sqlCode, 'deleteUser:'+name)
         return res
 
-    def addUser(self, name, school, gender):
-        sqlCode ='INSERT INTO ' +self._tableName +' (name, school, gender) VALUES (\'' +\
-                 name +'\', \'' +school +'\', \'' +gender+'\');'
+    def addUser(self, name, school, gender, chatgroup='1'):
+        sqlCode ='INSERT INTO ' +self._tableName +' (name, school, gender, chatgroup) VALUES (\'' +\
+                 name +'\', \'' +school +'\', \'' +gender +'\', \'' +str(chatgroup)+'\');'
         res =self.executeSql(sqlCode, 'addUser:'+name)
         return res
     
     def queryUser(self, name='ALLU'):
         if name =='ALLU':
-            sqlCode ='SELECT * FROM ' +self._tableName
+            sqlCode ='SELECT * FROM ' +self._tableName+';'
         else:
             sqlCode ='SELECT * FROM ' +self._tableName +' WHERE name=\'' +name +'\';'
         res =self.querySql(sqlCode, 'query:User')
@@ -132,6 +175,19 @@ class userTable(flagDB):
         res =self.querySql(sqlCode, 'query:User')
         return res
 
+    def queryUserByGroup(self, chatgroup):
+        if int(chatgroup):
+            sqlCode ='SELECT * FROM ' +self._tableName +' WHERE chatgroup=' +str(chatgroup) +';'
+        else:
+            sqlCode ='SELECT * FROM ' +self._tableName+';'
+        res =self.querySql(sqlCode, 'query:User')
+        return res
+
+    def updateUser(self, name, school, gender, chatgroup='1'):
+        sqlCode ='UPDATE ' + self._tableName +' SET school=\'' +school +'\', ' +' gender=\'' + gender +' chatgroup=\'' + str(chatgroup) +'\' WHERE name=\'' +name +'\';' 
+        res =self.executeSql(sqlCode, 'updateUser:'+name)
+        return res
+
 class flagTable(flagDB):
 
     def __init__(self):
@@ -143,7 +199,7 @@ class flagTable(flagDB):
         if int(id):
             sqlCode ='DELETE FROM ' +self._tableName +' WHERE f_id=' +str(id) +';'
         else:
-            sqlCode ='DELETE FROM ' +self._tableName
+            sqlCode ='DELETE FROM ' +self._tableName+';'
         res =self.executeSql(sqlCode, 'deleteFlag:'+str(id))
         return res
 
@@ -192,7 +248,7 @@ class positionTable(flagDB):
         if int(id):
             sqlCode ='DELETE FROM ' +self._tableName +' WHERE p_id=' +str(id)+';'
         else:
-            sqlCode ='DELETE FROM ' +self._tableName
+            sqlCode ='DELETE FROM ' +self._tableName+';'
         res =self.executeSql(sqlCode, 'deleteFlag:'+str(id))
         return res
 
@@ -221,7 +277,7 @@ class typeTable(flagDB):
         if int(id):
             sqlCode ='DELETE FROM ' +self._tableName +' WHERE ft_id=' +str(id) +';'
         else:
-            sqlCode ='DELETE FROM ' +self._tableName
+            sqlCode ='DELETE FROM ' +self._tableName+';'
         res =self.executeSql(sqlCode, 'deleteType:'+str(id))
         return res
     
@@ -250,7 +306,7 @@ class hasflagTable(flagDB):
         if int(u_id):
             sqlCode ='DELETE FROM ' +self._tableName +' WHERE u_id=' +str(u_id) +';'
         else:
-            sqlCode ='DELETE FROM ' +self._tableName
+            sqlCode ='DELETE FROM ' +self._tableName+';'
         res =self.executeSql(sqlCode, 'delateHasflag:'+str(u_id))
         return res
 
@@ -279,7 +335,7 @@ class friendTable(flagDB):
         if int(id):
             sqlCode ='DELETE FROM ' +self._tableName +' WHERE u1_id=' +str(u1_id) +';'
         else:
-            sqlCode ='DELETE FROM ' +self._tableName
+            sqlCode ='DELETE FROM ' +self._tableName+';'
         res =self.executeSql(sqlCode, 'deleteFriend:'+str(u1_id))
         return res
 
